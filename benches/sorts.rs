@@ -40,7 +40,7 @@ fn sorting_i32s(c: &mut Criterion) {
     let mut group = c.benchmark_group("all sorts of sorts");
 
     let items_set: Vec<(usize, Vec<i32>)> = [
-        0, 1, 2, 3, 4, 5, 10, 100, 1_000, 2_000,
+        // 0, 1, 2, 3, 4, 5, 10, 100, 1_000, 2_000,
         5_000,
         //     1_000_000,
         //     2_000_000,
