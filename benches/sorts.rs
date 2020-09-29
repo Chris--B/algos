@@ -66,6 +66,10 @@ fn sorting_i32s(c: &mut Criterion) {
         do_sort_bench(&mut group, size, &items, "selection", |xs: &mut [i32]| {
             algos::selection_sort(xs);
         });
+
+        do_sort_bench(&mut group, size, &items, "insertion", |xs: &mut [i32]| {
+            algos::insertion_sort(xs);
+        });
     }
 
     group.finish();

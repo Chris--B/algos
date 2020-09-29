@@ -14,6 +14,27 @@ pub fn selection_sort<T: Ord>(mut items: &mut [T]) {
     }
 }
 
+pub fn insertion_sort<T: Ord>(items: &mut [T]) {
+    // Walk the list, leaving everything on the left sorted.
+    // We start with a "sorted" list of 1 element, which is trivially sorted.
+    for i in 1..items.len() {
+        // All elements < i are sorted, but slot i is not.
+        // We split one past i to introduce our unsorted element into `sorted`.
+        let (sorted, _) = items.split_at_mut(i + 1);
+
+        // And then we walk backwards in sorted, until our element is in place
+        for j in (1..sorted.len()).rev() {
+            if sorted[j] < sorted[j - 1] {
+                // If we're not sorted, move it down and continue
+                sorted.swap(j, j - 1);
+            } else {
+                // If we are sorted, we're done!
+                break;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -44,7 +65,8 @@ mod tests {
     }
 
     make_test! {
-        fn check_std => |v| v.sort(),
-        fn check_selection => selection_sort
+        fn check_std_sort => |v| v.sort(),
+        fn check_selection_sort => selection_sort,
+        fn check_insertion_sort => insertion_sort
     }
 }
