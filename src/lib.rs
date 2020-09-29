@@ -1,5 +1,17 @@
-pub fn selection_sort<T: Ord>(_items: &mut [T]) {
-    // TODO
+pub fn selection_sort<T: Ord>(mut items: &mut [T]) {
+    while !items.is_empty() {
+        // Find the smallest element left in our (shrinking) items
+        let (min, _elem) = items.iter().enumerate().min_by_key(|(_i, k)| *k).unwrap();
+
+        // Place it at the front
+        // This is where it belongs in the final sorted list, because it's
+        // the smallest element in our list now. Everything smaller is outside
+        // of "items", in the part that we lobbed off.
+        items.swap(0, min);
+
+        // and then shrink our list
+        items = &mut items[1..];
+    }
 }
 
 #[cfg(test)]
