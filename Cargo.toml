@@ -12,6 +12,10 @@ lazy_static = "1"
 [dev-dependencies]
 criterion = "0.3"
 
+[dev-dependencies.rand]
+features = ["small_rng"]
+version = "0.7"
+
 [[bench]]
-name = "sorts"
 harness = false
+name = "sorts"
