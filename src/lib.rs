@@ -33,6 +33,33 @@ pub fn insertion_sort<T: Ord>(items: &mut [T]) {
     }
 }
 
+pub fn merge_sort<T: Ord + Clone>(items: &mut [T]) {
+    // If our slice is trivially sorted, we can stop recursing.
+    if items.len() == 1 {
+        return;
+    }
+
+    // 1. Pick a pivot point and split the items into two sub arrays
+    let items_len = items.len();
+    let pivot = items.len() / 2;
+    let (left, right) = items.split_at_mut(pivot);
+
+    // 2. Recurse to sort the sub arrays as smaller problems
+    merge_sort(left);
+    merge_sort(right);
+
+    // 3. Merge the two sorted sub-arrays using our scratch memory
+    let mut scratch: Vec<T> = Vec::with_capacity(items_len);
+    for thing in itertools::merge(left, right) {
+        scratch.push(thing.clone());
+    }
+
+    // 4. Replace the old ordering with the new one
+    for (old, new) in items.iter_mut().zip(scratch.into_iter()) {
+        *old = new;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -65,6 +92,7 @@ mod tests {
     make_test! {
         fn check_std_sort => |v| v.sort(),
         fn check_selection_sort => selection_sort,
-        fn check_insertion_sort => insertion_sort
+        fn check_insertion_sort => insertion_sort,
+        fn check_merge_sort => merge_sort
     }
 }
