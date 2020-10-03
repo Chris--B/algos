@@ -34,30 +34,40 @@ pub fn insertion_sort<T: Ord>(items: &mut [T]) {
 }
 
 pub fn merge_sort<T: Ord + Clone>(items: &mut [T]) {
-    // If our slice is trivially sorted, we can stop recursing.
-    if items.len() == 1 {
-        return;
+    fn merge_helper<T: Ord + Clone>(scratch: &mut Vec<T>, items: &mut [T]) {
+        // If our slice is trivially sorted, we can stop recursing.
+        if items.len() == 1 {
+            return;
+        }
+
+        // 1. Pick a pivot point and split the items into two sub arrays
+        let pivot = items.len() / 2;
+        let (left, right) = items.split_at_mut(pivot);
+
+        // 2. Recurse to sort the sub arrays as smaller problems
+        merge_helper(scratch, left);
+        scratch.clear();
+
+        merge_helper(scratch, right);
+        scratch.clear();
+
+        // 3. Merge the two sorted sub-arrays using our scratch memory
+        for thing in itertools::merge(left, right) {
+            scratch.push(thing.clone());
+        }
+
+        // 4. Replace the old ordering with the new one
+        for (old, new) in items.iter_mut().zip(scratch.iter_mut()) {
+            std::mem::swap(old, new);
+        }
     }
 
-    // 1. Pick a pivot point and split the items into two sub arrays
-    let items_len = items.len();
-    let pivot = items.len() / 2;
-    let (left, right) = items.split_at_mut(pivot);
+    // Re-use the scratch buffer across each recurse.
+    // We can do this because the entire function is single-threaded, so only
+    // a single recurse is using this at once.
+    let mut scratch: Vec<T> = Vec::with_capacity(items.len());
 
-    // 2. Recurse to sort the sub arrays as smaller problems
-    merge_sort(left);
-    merge_sort(right);
-
-    // 3. Merge the two sorted sub-arrays using our scratch memory
-    let mut scratch: Vec<T> = Vec::with_capacity(items_len);
-    for thing in itertools::merge(left, right) {
-        scratch.push(thing.clone());
-    }
-
-    // 4. Replace the old ordering with the new one
-    for (old, new) in items.iter_mut().zip(scratch.into_iter()) {
-        *old = new;
-    }
+    merge_helper(&mut scratch, items);
 }
 
 #[cfg(test)]
