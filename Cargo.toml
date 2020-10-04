@@ -13,7 +13,7 @@ itertools = "0.9"
 [dev-dependencies]
 criterion = "0.3"
 
-[dev-dependencies.rand]
+[dependencies.rand]
 features = ["small_rng"]
 version = "0.7"
 

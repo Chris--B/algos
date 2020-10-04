@@ -70,6 +70,36 @@ pub fn merge_sort<T: Ord + Clone>(items: &mut [T]) {
     merge_helper(&mut scratch, items);
 }
 
+pub fn quick_sort<T: Ord>(items: &mut [T]) {
+    /// Quicksort works by partitioning, and then recursing.
+
+    // This helper function picks a pivot point and rearranges `items` so that
+    // the pivot point is moved to the correct slot, everything less is on the
+    // left, and everything greater is on the right.
+    fn partition<T: Ord>(items: &mut [T]) -> usize {
+        let pivot: usize = items.len() - 1;
+        let mut first_high: usize = 0;
+
+        for i in 0..items.len() {
+            if items[i] < items[pivot] {
+                items.swap(i, first_high);
+                first_high += 1;
+            }
+        }
+        items.swap(pivot, first_high);
+
+        first_high
+    }
+
+    if items.len() > 1 {
+        let pivot = partition(items);
+
+        let (left, right) = items.split_at_mut(pivot);
+        quick_sort(left);
+        quick_sort(right);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -103,6 +133,7 @@ mod tests {
         fn check_std_sort => |v| v.sort(),
         fn check_selection_sort => selection_sort,
         fn check_insertion_sort => insertion_sort,
-        fn check_merge_sort => merge_sort
+        fn check_merge_sort => merge_sort,
+        fn check_quick_sort => quick_sort
     }
 }

@@ -102,6 +102,10 @@ fn sorting_with(c: &mut Criterion, name: &str, mut make_items: impl FnMut(usize)
         do_sort_bench(&mut group, size, &items, "merge", |xs: &mut [i32]| {
             algos::merge_sort(xs);
         });
+
+        do_sort_bench(&mut group, size, &items, "quick", |xs: &mut [i32]| {
+            algos::quick_sort(xs);
+        });
     }
 
     group.finish();
