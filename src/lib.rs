@@ -103,6 +103,7 @@ pub fn quick_sort<T: Ord>(items: &mut [T]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::prelude::*;
 
     macro_rules! make_test {
         ($(fn $test_name:ident => $sort_fn:expr),+) => {
@@ -124,6 +125,15 @@ mod tests {
                     let mut v: Vec<i32>  = vec![0, 9, 1, 8, 2, 7, 3, 6, 4, 5];
                     sort(&mut v);
                     assert_eq!(v, sorted);
+
+                    // Let's make 10 shuffled arrays and sort each one.
+                    for _ in 0..10 {
+                        let mut v = sorted.clone();
+                        v.shuffle(&mut thread_rng());
+
+                        sort(&mut v);
+                        assert_eq!(v, sorted);
+                    }
                 }
             )+
         }
