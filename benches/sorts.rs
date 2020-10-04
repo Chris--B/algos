@@ -87,9 +87,26 @@ fn sorting_with(c: &mut Criterion, name: &str, mut make_items: impl FnMut(usize)
 
         // Use the sort from the std library as a baseline
         // We shouldn't expect to out perform this one
-        do_sort_bench(&mut group, size, &items, "std", |xs: &mut [i32]| {
-            xs.sort();
-        });
+        do_sort_bench(
+            &mut group,
+            size,
+            &items,
+            "std-stable",
+            |xs: &mut [i32]| {
+                #[allow(clippy::stable_sort_primitive)]
+                xs.sort();
+            },
+        );
+
+        do_sort_bench(
+            &mut group,
+            size,
+            &items,
+            "std-unstable",
+            |xs: &mut [i32]| {
+                xs.sort_unstable();
+            },
+        );
 
         do_sort_bench(&mut group, size, &items, "selection", |xs: &mut [i32]| {
             algos::selection_sort(xs);

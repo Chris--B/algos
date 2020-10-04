@@ -130,7 +130,7 @@ mod tests {
     }
 
     make_test! {
-        fn check_std_sort => |v| v.sort(),
+        fn check_std_sort => |v| v.sort_unstable(),
         fn check_selection_sort => selection_sort,
         fn check_insertion_sort => insertion_sort,
         fn check_merge_sort => merge_sort,
