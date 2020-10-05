@@ -36,7 +36,7 @@ pub fn insertion_sort<T: Ord>(items: &mut [T]) {
 pub fn merge_sort<T: Ord + Clone>(items: &mut [T]) {
     fn merge_helper<T: Ord + Clone>(scratch: &mut Vec<T>, items: &mut [T]) {
         // If our slice is trivially sorted, we can stop recursing.
-        if items.len() == 1 {
+        if items.len() <= 1 {
             return;
         }
 
@@ -113,6 +113,21 @@ mod tests {
                     // Poor man's type checking
                     let sort: &dyn Fn(&mut [i32]) = &$sort_fn;
                     let sorted: Vec<i32> = (0..10).collect();
+
+                    // Empty slice should work
+                    let mut v: Vec<i32> = vec![];
+                    sort(&mut v);
+                    assert_eq!(v, &[]);
+
+                    // Trivially sorted list with a single element
+                    let mut v: Vec<i32> = vec![1];
+                    sort(&mut v);
+                    assert_eq!(v, &[1]);
+
+                    // Sometimes lists of two are too much trouble.
+                    let mut v: Vec<i32> = vec![2, 1];
+                    sort(&mut v);
+                    assert_eq!(v, &[1, 2]);
 
                     let mut v: Vec<i32>  = (0..10).collect();
                     sort(&mut v);
