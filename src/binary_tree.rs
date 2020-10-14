@@ -1,3 +1,4 @@
+use core::cmp::Ordering;
 use core::fmt::{self, Debug};
 
 struct Node<T>
@@ -56,8 +57,6 @@ where
     }
 
     fn find(&self, target: &T) -> Option<&Node<T>> {
-        use std::cmp::Ordering;
-
         // Select which half of the tree to search depending on the relation
         // between `target` and our current item
         match target.cmp(self.item()) {
@@ -71,8 +70,6 @@ where
     }
 
     fn insert(&mut self, new_node: Node<T>) {
-        use std::cmp::Ordering;
-
         match new_node.item().cmp(self.item()) {
             // This item is already in the tree and can be ignored
             Ordering::Equal => {}
@@ -387,11 +384,13 @@ mod tests {
         let mut tree: BinaryTree<i32> = SKIENA_TREE.into();
         assert_ne!(tree.len(), 0);
 
+        dbg!(&tree);
+
         let removed = tree.remove_item(&3);
         dbg!(&removed);
 
         let expected_tree: BinaryTree<_> = [2, 1, 7, 4, 8, 6, 5][..].into();
-        assert_eq!(expected_tree, tree,);
+        assert_eq!(expected_tree, tree);
         assert_eq!(removed, Some(3));
     }
 
@@ -404,7 +403,7 @@ mod tests {
         dbg!(&removed);
 
         let expected_tree: BinaryTree<_> = [2, 1, 7, 4, 8, 3, 5][..].into();
-        assert_eq!(expected_tree, tree,);
+        assert_eq!(expected_tree, tree);
         assert_eq!(removed, Some(6));
     }
 
@@ -417,7 +416,38 @@ mod tests {
         dbg!(&removed);
 
         let expected_tree: BinaryTree<_> = [2, 1, 7, 5, 8, 3, 6][..].into();
-        assert_eq!(expected_tree, tree,);
+        assert_eq!(expected_tree, tree);
         assert_eq!(removed, Some(4));
+    }
+
+    #[test]
+    fn check_delete_skiena_ex_root() {
+        let mut tree: BinaryTree<i32> = SKIENA_TREE.into();
+        assert_ne!(tree.len(), 0);
+
+        let removed = tree.remove_item(&2);
+        dbg!(&removed);
+
+        let expected_tree: BinaryTree<_> = [3, 1, 7, 4, 8, 6, 5][..].into();
+        assert_eq!(expected_tree, tree);
+        assert_eq!(removed, Some(2));
+    }
+
+    #[test]
+    fn check_delete_non_existing() {
+        let mut tree: BinaryTree<i32> = SKIENA_TREE.into();
+        assert_ne!(tree.len(), 0);
+
+        // Remove an item once
+        let removed = tree.remove_item(&4);
+        assert_eq!(removed, Some(4));
+
+        // Then attempt to remove it once more.
+        let removed = tree.remove_item(&4);
+        dbg!(&removed);
+
+        let expected_tree: BinaryTree<_> = [2, 1, 7, 5, 8, 3, 6][..].into();
+        assert_eq!(expected_tree, tree);
+        assert_eq!(removed, None);
     }
 }
