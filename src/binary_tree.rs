@@ -1,3 +1,5 @@
+use core::fmt::{self, Debug};
+
 struct Node<T>
 where
     T: Ord,
@@ -5,6 +7,19 @@ where
     item: T,
     left: Option<Box<Node<T>>>,
     right: Option<Box<Node<T>>>,
+}
+
+impl<T> Debug for Node<T>
+where
+    T: Ord + Debug,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("Node")
+            .field("item", &self.item)
+            .field("left", &self.left)
+            .field("right", &self.right)
+            .finish()
+    }
 }
 
 impl<T> Node<T>
@@ -45,7 +60,7 @@ where
 
         // Select which half of the tree to search depending on the relation
         // between `target` and our current item
-        match self.item().cmp(target) {
+        match target.cmp(self.item()) {
             Ordering::Equal => Some(self),
             // The invariant of our tree is that all elements Less than `self.item`
             // are accessible through `self.left`.
@@ -53,6 +68,29 @@ where
             // Likewise for Greater and `self.right`.
             Ordering::Greater => self.right()?.find(target),
         }
+    }
+
+    fn insert(&mut self, new_node: Node<T>) {
+        use std::cmp::Ordering;
+
+        match new_node.item().cmp(self.item()) {
+            // This item is already in the tree and can be ignored
+            Ordering::Equal => {}
+
+            Ordering::Less => match &mut self.left {
+                Some(node) => node.insert(new_node),
+                None => {
+                    self.left = Some(Box::new(new_node));
+                }
+            },
+
+            Ordering::Greater => match &mut self.right {
+                Some(node) => node.insert(new_node),
+                None => {
+                    self.right = Some(Box::new(new_node));
+                }
+            },
+        };
     }
 
     fn min(&self) -> &Node<T> {
@@ -113,7 +151,7 @@ pub struct BinaryTree<T>
 where
     T: Ord,
 {
-    root: Option<Node<T>>,
+    root: Option<Box<Node<T>>>,
 }
 
 impl<T> Default for BinaryTree<T>
@@ -122,6 +160,45 @@ where
 {
     fn default() -> Self {
         BinaryTree { root: None }
+    }
+}
+
+impl<T> PartialEq for BinaryTree<T>
+where
+    T: Ord,
+{
+    fn eq(&self, other: &Self) -> bool {
+        if self.len() != other.len() {
+            return false;
+        }
+
+        for (left, right) in self.iter().zip(other.iter()) {
+            if left != right {
+                return false;
+            }
+        }
+
+        true
+    }
+}
+
+impl<T> Debug for BinaryTree<T>
+where
+    T: Ord + Debug,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("BinaryTree")
+            .field("root", &self.root)
+            .finish()
+    }
+}
+
+impl<T> From<&[T]> for BinaryTree<T>
+where
+    T: Ord + Clone,
+{
+    fn from(ts: &[T]) -> Self {
+        ts.iter().cloned().collect()
     }
 }
 
@@ -146,11 +223,22 @@ where
     /// Whether there are any items in this tree.
     pub fn is_empty(&self) -> bool {
         // TODO: Use len() instead (after it's cached)
-        self.root.is_some()
+        self.root.is_none()
     }
 
-    pub fn insert(&mut self, _item: T) {
-        todo!();
+    /// Move `item` into the Tree
+    pub fn insert(&mut self, item: T) {
+        let new_node = Node::new(item);
+        match &mut self.root {
+            Some(root) => root.insert(new_node),
+            None => self.root = Some(Box::new(new_node)),
+        }
+    }
+
+    /// Removes an item and returns it if found
+    pub fn remove_item(&mut self, _item: &T) -> Option<T> {
+        // TODO!
+        None
     }
 
     /// Height of the tree
@@ -225,5 +313,111 @@ where
         }
 
         tree
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use pretty_assertions::{assert_eq, assert_ne};
+
+    #[test]
+    fn check_basic_builder() {
+        let items: Vec<_> = (-10..=10).collect();
+        let tree: BinaryTree<i32> = items.iter().copied().collect();
+
+        let tree_items: Vec<_> = tree.iter().copied().collect();
+        assert_eq!(items, tree_items);
+
+        // Check misc things
+        assert_eq!(items.iter().min(), tree.min());
+        assert_eq!(items.iter().max(), tree.max());
+    }
+
+    #[test]
+    fn check_contains() {
+        let items: Vec<_> = (-10..=10).collect();
+        let tree: BinaryTree<i32> = items.iter().copied().collect();
+
+        for (i, item) in items.iter().enumerate() {
+            assert!(
+                tree.contains(item),
+                "items[{}] == {}, but not found in tree",
+                i,
+                item
+            );
+        }
+    }
+
+    // This tree borrowed from:
+    // Skiena's Algorithm Design Manual pg 81, section 3.4.1
+    const SKIENA_TREE: &[i32] = &[2, 1, 7, 4, 8, 3, 6, 5];
+
+    #[test]
+    fn check_len_and_height() {
+        let mut tree = BinaryTree::default();
+        assert_eq!(0, tree.len());
+        assert!(tree.is_empty());
+
+        let expected_heights = [1_usize, 2, 2, 3, 3, 4, 4, 5];
+
+        for (i, (item, expected_height)) in SKIENA_TREE
+            .iter()
+            .copied()
+            .zip(expected_heights.iter().copied())
+            .enumerate()
+        {
+            let item: i32 = item;
+            let expected_height: usize = expected_height;
+            tree.insert(item);
+
+            dbg!(i, &tree);
+            assert_eq!(
+                expected_height,
+                tree.height(),
+                "Checking height after inserting {}",
+                item
+            );
+        }
+    }
+
+    #[test]
+    fn check_delete_skiena_ex_3() {
+        let mut tree: BinaryTree<i32> = SKIENA_TREE.into();
+        assert_ne!(tree.len(), 0);
+
+        let removed = tree.remove_item(&3);
+        dbg!(&removed);
+
+        let expected_tree: BinaryTree<_> = [2, 1, 7, 4, 8, 6, 5][..].into();
+        assert_eq!(expected_tree, tree,);
+        assert_eq!(removed, Some(3));
+    }
+
+    #[test]
+    fn check_delete_skiena_ex_6() {
+        let mut tree: BinaryTree<i32> = SKIENA_TREE.into();
+        assert_ne!(tree.len(), 0);
+
+        let removed = tree.remove_item(&6);
+        dbg!(&removed);
+
+        let expected_tree: BinaryTree<_> = [2, 1, 7, 4, 8, 3, 5][..].into();
+        assert_eq!(expected_tree, tree,);
+        assert_eq!(removed, Some(6));
+    }
+
+    #[test]
+    fn check_delete_skiena_ex_4() {
+        let mut tree: BinaryTree<i32> = SKIENA_TREE.into();
+        assert_ne!(tree.len(), 0);
+
+        let removed = tree.remove_item(&4);
+        dbg!(&removed);
+
+        let expected_tree: BinaryTree<_> = [2, 1, 7, 5, 8, 3, 6][..].into();
+        assert_eq!(expected_tree, tree,);
+        assert_eq!(removed, Some(4));
     }
 }
