@@ -1,9 +1,9 @@
 #!/bin/bash
 
 cargo watch -c \
-    -x "check --tests                " \
+    -x "check --workspace            " \
     -x "fmt                          " \
-    -x "clippy --tests               " \
+    -x "clippy --workspace           " \
     -x "doc --document-private-items " \
     -x "test                         " \
     -x "bench                        " \
