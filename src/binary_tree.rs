@@ -438,7 +438,7 @@ where
             }
         };
 
-        if !inserted {
+        if inserted {
             self.len += 1;
         }
 
@@ -447,7 +447,7 @@ where
 
     /// Removes an item and returns it if found
     pub fn remove_item(&mut self, item: &T) -> Option<T> {
-        if self.root.as_ref().map(|r| r.item()) == Some(item) {
+        let removed = if self.root.as_ref().map(|r| r.item()) == Some(item) {
             // We found our node! (that was fast?)
             // Replace it with is subtree, adjusting as necessary
             let root: Node<T> = *self.root.take().unwrap();
@@ -459,7 +459,13 @@ where
             Some(item)
         } else {
             self.root.as_mut().and_then(|r| r.remove_item(item))
+        };
+
+        if removed.is_some() {
+            self.len -= 1;
         }
+
+        removed
     }
 
     /// Height of the tree
@@ -717,5 +723,38 @@ mod tests {
         assert_eq!(expected_tree, tree);
         assert_eq!(removed, None);
         assert_eq!(SKIENA_TREE.len() - 1, tree.len());
+    }
+
+    #[test]
+    fn check_len_exhaustively() {
+        let mut tree = BinaryTree::new();
+        let items: Vec<_> = SKIENA_TREE.into();
+
+        assert!(tree.is_empty());
+
+        // Insert each element, checking the length along the way
+        for (i, item) in items.iter().enumerate() {
+            assert_eq!(i, tree.len());
+
+            tree.insert(*item);
+            // Never empty at this point
+            assert!(!tree.is_empty());
+
+            assert_eq!(i + 1, tree.len());
+        }
+
+        // And then undo that, in reverse. Still checking.
+        for (i, item) in items.iter().enumerate().rev() {
+            assert_eq!(i + 1, tree.len());
+
+            // Never empty at this point
+            assert!(!tree.is_empty());
+            tree.remove_item(item);
+
+            assert_eq!(i, tree.len());
+        }
+
+        // Come back to where we started: empty.
+        assert!(tree.is_empty());
     }
 }
