@@ -440,7 +440,9 @@ where
     /// Nodes are traversed in Depth First order, meaning they are accessed
     /// in increasing order.
     pub fn for_each<'a>(&'a self, mut f: impl FnMut(&'a T)) {
-        self.root.as_ref().map(|r| r.for_each(&mut f));
+        if let Some(r) = self.root.as_ref() {
+            r.for_each(&mut f);
+        }
     }
 
     /// Iterate over the nodes in-order, with each processed node Greater than
