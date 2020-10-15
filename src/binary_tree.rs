@@ -16,8 +16,8 @@ where
 {
     fn clone(&self) -> Self {
         let item = self.item.clone();
-        let left = self.left.as_ref().map(|n| n.clone());
-        let right = self.right.as_ref().map(|n| n.clone());
+        let left = self.left.as_ref().cloned();
+        let right = self.right.as_ref().cloned();
 
         Node { item, left, right }
     }
@@ -113,8 +113,90 @@ where
         true
     }
 
-    fn remove_item(&mut self, _item: &T) -> Option<T> {
-        None
+    // Helper method to prep this node to be removed.
+    //
+    // The item that this node held and the adjusted subtree are returned.
+    // The adjusted subtree should be placed where this node was, and the item
+    // should be returned up to the caller on the Tree object.
+    fn remove_self(self) -> (T, Option<Box<Node<T>>>) {
+        let Node { item, left, right } = self;
+
+        match (left, right) {
+            (None, None) => {
+                // No subtree to manage, we can return a NULL node
+                (item, None)
+            }
+            (Some(node), None) | (None, Some(node)) => {
+                // There's only one sub tree, we should return that in our place
+                (item, Some(node))
+            }
+            (Some(_l), Some(_r)) => {
+                // hard part
+                todo!()
+            }
+        }
+    }
+
+    fn remove_item(&mut self, item: &T) -> Option<T> {
+        match item.cmp(&self.item) {
+            Ordering::Equal => {
+                // We shouldn't have gotten into this node if our current item
+                // was the item to remove.
+                unreachable!(
+                    "Node at 0x{:x} is equal to item to remove. This should not happen",
+                    self as *const _ as usize
+                );
+            }
+
+            Ordering::Less => {
+                if self.left().map(|n| n.item()) == Some(item) {
+                    // We found our node!
+                    // Replace it with is subtree, adjusting as necessary
+                    let left: Node<T> = *self.left.take().unwrap();
+                    // Adjust the subtree and move out our item
+                    let (item, node) = left.remove_self();
+                    // and hook it up
+                    self.left = node;
+
+                    Some(item)
+                } else {
+                    // Continue searching down the left
+                    if let Some(item) = self.left.as_mut().and_then(|n| n.remove_item(item)) {
+                        // The left side found the item and removed it - continue returning it
+                        Some(item)
+                    } else {
+                        // The left side did not contain the item, therefore it isn't in our tree.
+                        // There's nothing to remove.
+                        None
+                    }
+                }
+            }
+
+            Ordering::Greater => {
+                // We found our node:
+                if self.right().map(|n| n.item()) == Some(item) {
+                    // We found our node!
+                    // Replace it with is subtree, adjusting as necessary
+                    let right: Node<T> = *self.right.take().unwrap();
+                    // Adjust the subtree and move out our item
+                    let (item, node) = right.remove_self();
+                    // and hook it up
+                    self.right = node;
+
+                    Some(item)
+                } else {
+                    // Continue searching down the right
+                    if let Some(item) = self.right.as_mut().and_then(|n| n.remove_item(item)) {
+                        // The right side found the item and removed it - continue returning it
+                        Some(item)
+                    } else {
+                        // The right side did not contain the item, therefore it isn't in our tree.
+                        // There's nothing to remove.
+                        None
+                    }
+                }
+            }
+        }
     }
 
     fn min(&self) -> &Node<T> {
@@ -315,7 +397,19 @@ where
 
     /// Removes an item and returns it if found
     pub fn remove_item(&mut self, item: &T) -> Option<T> {
-        self.root.as_mut().and_then(|r| r.remove_item(item))
+        if self.root.as_ref().map(|r| r.item()) == Some(item) {
+            // We found our node! (that was fast?)
+            // Replace it with is subtree, adjusting as necessary
+            let root: Node<T> = *self.root.take().unwrap();
+            // Adjust the subtree and move out our item
+            let (item, node) = root.remove_self();
+            // and hook it up
+            self.root = node;
+
+            Some(item)
+        } else {
+            self.root.as_mut().and_then(|r| r.remove_item(item))
+        }
     }
 
     /// Height of the tree
@@ -457,25 +551,38 @@ mod tests {
         }
     }
 
+    /// Remove a left node with 0 children
     #[test]
-    #[ignore]
     fn check_delete_skiena_ex_3() {
         let mut tree: BinaryTree<i32> = SKIENA_TREE.into();
         assert_eq!(tree.len(), SKIENA_TREE.len());
-
-        dbg!(&tree);
 
         let removed = tree.remove_item(&3);
         dbg!(&removed);
 
         let expected_tree: BinaryTree<_> = vec![2, 1, 7, 4, 8, 6, 5].into();
         assert_eq!(expected_tree, tree);
-        assert_eq!(removed, Some(3));
-        assert_eq!(tree.len(), SKIENA_TREE.len() - 1);
+        assert_eq!(Some(3), removed);
+        assert_eq!(SKIENA_TREE.len() - 1, tree.len());
     }
 
+    /// Remove a right node with 0 children
     #[test]
-    #[ignore]
+    fn check_delete_skiena_ex_8() {
+        let mut tree: BinaryTree<i32> = SKIENA_TREE.into();
+        assert_eq!(tree.len(), SKIENA_TREE.len());
+
+        let removed = tree.remove_item(&8);
+        dbg!(&removed);
+
+        let expected_tree: BinaryTree<_> = vec![2, 1, 7, 4, 3, 6, 5].into();
+        assert_eq!(expected_tree, tree);
+        assert_eq!(Some(8), removed);
+        assert_eq!(SKIENA_TREE.len() - 1, tree.len());
+    }
+
+    // Remove a node with 1 child
+    #[test]
     fn check_delete_skiena_ex_6() {
         let mut tree: BinaryTree<i32> = SKIENA_TREE.into();
         assert_eq!(tree.len(), SKIENA_TREE.len());
@@ -485,12 +592,12 @@ mod tests {
 
         let expected_tree: BinaryTree<_> = vec![2, 1, 7, 4, 8, 3, 5].into();
         assert_eq!(expected_tree, tree);
-        assert_eq!(removed, Some(6));
-        assert_eq!(tree.len(), SKIENA_TREE.len() - 1);
+        assert_eq!(Some(6), removed);
+        assert_eq!(SKIENA_TREE.len() - 1, tree.len());
     }
 
+    // Remove a node with 2 children
     #[test]
-    #[ignore]
     fn check_delete_skiena_ex_4() {
         let mut tree: BinaryTree<i32> = SKIENA_TREE.into();
         assert_eq!(tree.len(), SKIENA_TREE.len());
@@ -500,12 +607,19 @@ mod tests {
 
         let expected_tree: BinaryTree<_> = vec![2, 1, 7, 5, 8, 3, 6].into();
         assert_eq!(expected_tree, tree);
-        assert_eq!(removed, Some(4));
-        assert_eq!(tree.len(), SKIENA_TREE.len() - 1);
+        assert_eq!(Some(4), removed);
+        assert_eq!(SKIENA_TREE.len() - 1, tree.len());
     }
 
     #[test]
-    #[ignore]
+    fn check_delete_root_simple() {
+        let mut tree: BinaryTree<i32> = [1].into();
+
+        assert_eq!(tree.remove_item(&1), Some(1));
+        assert_eq!(tree, BinaryTree::new());
+    }
+
+    #[test]
     fn check_delete_skiena_ex_root() {
         let mut tree: BinaryTree<i32> = SKIENA_TREE.into();
         assert_eq!(tree.len(), SKIENA_TREE.len());
@@ -515,19 +629,18 @@ mod tests {
 
         let expected_tree: BinaryTree<_> = vec![3, 1, 7, 4, 8, 6, 5].into();
         assert_eq!(expected_tree, tree);
-        assert_eq!(removed, Some(2));
-        assert_eq!(tree.len(), SKIENA_TREE.len() - 1);
+        assert_eq!(Some(2), removed);
+        assert_eq!(SKIENA_TREE.len() - 1, tree.len());
     }
 
     #[test]
-    #[ignore]
     fn check_delete_non_existing() {
         let mut tree: BinaryTree<i32> = SKIENA_TREE.into();
         assert_eq!(tree.len(), SKIENA_TREE.len());
 
         // Remove an item once
         let removed = tree.remove_item(&4);
-        assert_eq!(removed, Some(4));
+        assert_eq!(Some(4), removed);
 
         // Then attempt to remove it once more.
         let removed = tree.remove_item(&4);
@@ -536,6 +649,6 @@ mod tests {
         let expected_tree: BinaryTree<_> = vec![2, 1, 7, 5, 8, 3, 6].into();
         assert_eq!(expected_tree, tree);
         assert_eq!(removed, None);
-        assert_eq!(tree.len(), SKIENA_TREE.len() - 1);
+        assert_eq!(SKIENA_TREE.len() - 1, tree.len());
     }
 }
