@@ -69,6 +69,10 @@ where
         1 + left_h.max(right_h)
     }
 
+    fn is_leaf(&self) -> bool {
+        self.left.is_none() && self.right.is_none()
+    }
+
     fn find(&self, target: &T) -> Option<&Node<T>> {
         // Select which half of the tree to search depending on the relation
         // between `target` and our current item
@@ -113,6 +117,25 @@ where
         true
     }
 
+    /// Helper method to remove the smallest node in this subtree
+    ///
+    /// The node is cut out from the tree and returned.
+    fn pop_min(&mut self) -> Box<Node<T>> {
+        let left = self
+            .left
+            .as_mut()
+            .expect("pop_min() was called on a leaf node, but shouldn't have been.");
+        if left.is_leaf() {
+            // We found our leaf node and must replace left in its parent with
+            // None.
+            // We know left is there, so this unwrap will never panic.
+            self.left.take().unwrap()
+        } else {
+            // Not done yet - keep recursing
+            left.pop_min()
+        }
+    }
+
     // Helper method to prep this node to be removed.
     //
     // The item that this node held and the adjusted subtree are returned.
@@ -121,20 +144,47 @@ where
     fn remove_self(self) -> (T, Option<Box<Node<T>>>) {
         let Node { item, left, right } = self;
 
-        match (left, right) {
+        let node = match (left, right) {
             (None, None) => {
                 // No subtree to manage, we can return a NULL node
-                (item, None)
+                None
             }
+
             (Some(node), None) | (None, Some(node)) => {
                 // There's only one sub tree, we should return that in our place
-                (item, Some(node))
+                Some(node)
             }
-            (Some(_l), Some(_r)) => {
-                // hard part
-                todo!()
+
+            (Some(l), Some(mut r)) => {
+                // We're going to replace our selves in the tree with the next
+                // item from the tree in sorted order.
+                // This is located on the right (since it's larger), and then
+                // alllll the way on the left of that subtree (since it must
+                // be the smallest in said subtree).
+                // This node must exist, although it may just be `r`.
+                if r.is_leaf() {
+                    // If r is a leaf node, then it *is* succ and we don't need
+                    // to recurse.
+                    let mut succ: Box<Node<T>> = r;
+
+                    succ.left = Some(l);
+                    succ.right = None;
+
+                    Some(succ)
+                } else {
+                    // If it is not a leaf node, we need to recurse once on the
+                    // right and then find the minimum item in that subtree.
+                    let mut succ: Box<Node<T>> = r.pop_min();
+
+                    succ.left = Some(l);
+                    succ.right = Some(r);
+
+                    Some(succ)
+                }
             }
-        }
+        };
+
+        (item, node)
     }
 
     fn remove_item(&mut self, item: &T) -> Option<T> {
@@ -611,6 +661,21 @@ mod tests {
         assert_eq!(expected_tree, tree);
         assert_eq!(Some(4), removed);
         assert_eq!(SKIENA_TREE.len() - 1, tree.len());
+    }
+
+    // Remove a node with 2 children, the right of which is a leaf node
+    #[test]
+    fn check_delete_2_children_right_is_leaf() {
+        let mut tree: BinaryTree<i32> = SKIENA_TREE.into();
+        assert_eq!(tree.len(), SKIENA_TREE.len());
+
+        let removed = tree.remove_item(&4);
+        assert_eq!(Some(4), removed);
+
+        let removed = tree.remove_item(&5);
+        assert_eq!(Some(5), removed);
+
+        assert_eq!(tree, vec![2, 1, 7, 6, 8, 3].into());
     }
 
     #[test]
