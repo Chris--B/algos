@@ -21,3 +21,8 @@ version = "0.7"
 [[bench]]
 harness = false
 name = "sorts"
+
+# Some of the algos here depend on nightly features, so they are feature gated.
+[features]
+default = []
+substr = []
