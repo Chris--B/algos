@@ -11,11 +11,18 @@ All of the things here are written in Rust and use Cargo to build.
 Setup Rust by following the instructions here: https://rustup.rs/
 
 ```bash
-cargo build # build the code
-cargo test # run the unit tests
-cargo bench # run the bench marks. This produces graphs that may be of interest.
+cargo build  # build the code
+cargo test   # run the unit tests
+cargo bench  # run the bench marks. This produces graphs that may be of interest.
 ```
 
 `watch.sh` is a convenient helper script that runs [`cargo-watch`](https://crates.io/crates/cargo-watch) how I like it.
 
 Happy hacking. 😊
+
+### Nightly Features
+
+Some of the algorithms use features of Rust not yet in stable. `std::num::Wrapping` is a common one. These are feature gated, so to build or bench them, you need `--all-features`
+```
+cargo test --all-features
+```
