@@ -68,8 +68,12 @@ fn sorting_with(c: &mut Criterion, name: &str, mut make_items: impl FnMut(usize)
     let mut group = c.benchmark_group(name);
 
     let items_set: Vec<(usize, Vec<i32>)> = [
-        // 0, 1, 2, 3, 4, 5, 10, 100, 1_000, 2_000,
-        5_000,
+        // 0, 1, 2, 3, 4, 5, 10,
+        100,
+        //     500,
+        //     1_000,
+        //     2_000,
+        //     5_000,
         //     1_000_000,
         //     2_000_000,
         //     5_000_000,
