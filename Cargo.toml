@@ -18,9 +18,15 @@ pretty_assertions = "0.6"
 features = ["small_rng"]
 version = "0.7"
 
+[lib]
+name = "algos"
+# Disable the bench here so that criterion can run correctly:
+# see: https://bheisler.github.io/criterion.rs/book/faq.html#cargo-bench-gives-unrecognized-option-errors-for-valid-command-line-options
+bench = false
+
 [[bench]]
-harness = false
 name = "sorts"
+harness = false
 
 # Some of the algos here depend on nightly features, so they are feature gated.
 [features]
